@@ -7,14 +7,13 @@ trigger:
   branches:
     include:
     - master
-
 pr:
   branches:
     include:
     - master
 
-pool: 
-  vmImage: ubuntu-20.04
+container:
+  image: sonicdev-microsoft.azurecr.io:443/sonic-slave-buster:latest
 
 stages:
 - stage: Build
@@ -28,11 +27,26 @@ stages:
       submodules: recursive
       displayName: 'Checkout code'
     - script: |
-        echo Hello
+        # Install swig
+        sudo apt-get install -y swig3.0
+
+        # Install HIREDIS
+        sudo apt-get install -y libhiredis0.14 libhiredis-dev
+
+        sudo apt-get install -y libnl-3-dev \
+                                libnl-genl-3-dev \
+                                libnl-route-3-dev \
+                                libnl-nf-3-dev
+
         # the following is copied from jenkins
         # set -ex
         # ./scripts/common/sonic-mgmt-common-build/build.sh
         # ./scripts/common/sonic-mgmt-common-build/test.sh
+      displayName: "Install dependency"
+    - script: |
+        ls -l
+        dpkg-buildpackage -us -uc -b && cp ../*.deb .
+      displayName: "Build"
     - publish: $(System.DefaultWorkingDirectory)/target/
       artifact: sonic-mgmt-common
       displayName: "Archive artifacts"
